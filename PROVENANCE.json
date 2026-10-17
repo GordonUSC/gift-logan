@@ -1,0 +1,22 @@
+{
+ "img/stage.jpg": {
+  "tool": "higgsfield",
+  "prompt": "Empty vintage Hollywood soundstage with script pages (gpt_image_2_5, job 5cc85f08)"
+ },
+ "snd/spot.mp3": {
+  "tool": "elevenlabs",
+  "prompt": "theatrical spotlight switching on (flow XFtLaYd3DeDQ7BE4VNfZ)"
+ },
+ "snd/pages.mp3": {
+  "tool": "elevenlabs",
+  "prompt": "script pages fluttering up with shimmer (flow XFtLaYd3DeDQ7BE4VNfZ)"
+ },
+ "snd/applause.mp3": {
+  "tool": "elevenlabs",
+  "prompt": "premiere audience applause (flow XFtLaYd3DeDQ7BE4VNfZ)"
+ },
+ "snd/music.mp3": {
+  "tool": "elevenlabs",
+  "prompt": "old Hollywood orchestral overture, 18 s (eleven_music_v2_5, flow XFtLaYd3DeDQ7BE4VNfZ)"
+ }
+}

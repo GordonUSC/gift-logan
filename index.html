@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Out Loud</title>
+<meta name="description" content="For Logan: find the scripts waiting for their spotlight.">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="Out Loud">
+<meta property="og:image" content="https://gordonusc.github.io/gift-logan/img/stage.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=DM+Serif+Display:ital@0;1&family=Work+Sans:wght@400;700&display=swap">
+<style>
+:root{--outer:#0c0508;--ink:#fff2e0;--accent:#ffc861;--card:#1c0a12f2;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--outer);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{font:16px/1.4 "Work Sans",system-ui,sans-serif;color:var(--ink)}
+.stage{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:min(100vw,calc(100svh*9/16));overflow:hidden;background:var(--outer)}
+.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.cap{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 18px);text-align:center;padding:0 18px;pointer-events:none;text-shadow:0 2px 14px #000c}
+.cap small{display:block;font-weight:700;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent)}
+.cap h1{margin:6px 0 4px;font:400 clamp(36px,11vw,56px) "Limelight",Georgia,serif;line-height:1.02;text-wrap:balance}
+.cap p{margin:0 auto;max-width:30ch;font-size:15px;opacity:.92}
+.hud{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);text-align:center;pointer-events:none;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--accent);text-shadow:0 2px 10px #000}
+.end{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%) scale(.9);opacity:0;transition:opacity .9s,transform .9s;text-align:center;pointer-events:none;padding:22px 18px;border-radius:18px;background:var(--card);box-shadow:0 20px 60px -20px #000}
+.end.on{opacity:1;transform:translateY(-50%) scale(1);pointer-events:auto}
+.end h2{margin:0 0 8px;font:italic 400 clamp(26px,7.5vw,34px) "DM Serif Display",Georgia,serif;line-height:1.08;text-wrap:balance}
+.end p{margin:0;font-size:15.5px;opacity:.95}
+.end button{margin-top:14px;font:700 13px "Work Sans",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;border-radius:999px;border:1.5px solid currentColor;background:transparent;color:inherit;cursor:pointer}
+.foot{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);text-align:center;font-size:11px;opacity:.7;pointer-events:none;text-shadow:0 1px 6px #000}
+.marq{position:absolute;left:6%;right:6%;top:calc(env(safe-area-inset-top,0px) + 150px);display:flex;justify-content:center;gap:6px;pointer-events:none}.marq span{width:34px;height:42px;border-radius:6px;display:flex;align-items:center;justify-content:center;font:400 26px "Limelight",Georgia,serif;color:#3a2a20;background:#1a0f0bcc;border:1px solid #ffc86133;transition:all .4s}.marq span.on{color:#fff6dc;background:#3a1d0f;border-color:#ffc861;box-shadow:0 0 18px #ffc861aa;text-shadow:0 0 10px #ffd98a}.log{position:absolute;left:10%;right:10%;top:56%;text-align:center;font:italic 400 22px "DM Serif Display",Georgia,serif;color:#fff2e0;text-shadow:0 2px 12px #000;opacity:0;transition:opacity .4s;pointer-events:none}.log.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <img class="bg" id="bg" src="img/stage.jpg" alt="An empty Hollywood soundstage with script pages on the floor">
+  <canvas id="cv"></canvas>
+  <div class="cap"><small>For Logan</small><h1>Out Loud</h1><p>Seven pilots are waiting in the dark. Drag the spotlight to find them.</p></div>
+  <div class="hud" id="hud">0 / 7 found</div>
+  <div class="marq" id="marq"></div><div class="log" id="log"></div>
+  <div class="end" id="end"><h2>The whole marquee is lit.</h2><p>You keep putting the spotlight on stories that deserve it. Thank you, Logan.</p><button id="again">Run it back</button></div>
+  <div class="foot">made by Darby, Gordon's AI assistant, with love from Gordon</div>
+</div>
+<script>
+// Sound: ElevenLabs files only (see PROVENANCE.json). WebAudio just plays and mixes them.
+let ac=null, master=null; const bufs={}; const SND=["spot","pages","applause","music"];
+function audio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); master=ac.createGain(); master.gain.value=.9; master.connect(ac.destination); SND.forEach(load);}catch(e){} } if(ac&&ac.state==='suspended') ac.resume(); return ac; }
+async function load(n){ if(bufs[n]) return bufs[n]; try{ const r=await fetch('snd/'+n+'.mp3'); const a=await r.arrayBuffer(); bufs[n]=await new Promise((ok,no)=>ac.decodeAudioData(a,ok,no)); }catch(e){} return bufs[n]; }
+async function play(n,vol=1,loop=false,rate=1){ if(!audio()) return null; const b=await load(n); if(!b) return null; const s=ac.createBufferSource(), g=ac.createGain(); s.buffer=b; s.loop=loop; s.playbackRate.value=rate; g.gain.value=vol; s.connect(g).connect(master); s.start(); return {s,g,t0:ac.currentTime}; }
+function fade(h,t=.4){ if(!h||!ac) return; try{ h.g.gain.cancelScheduledValues(ac.currentTime); h.g.gain.setTargetAtTime(0,ac.currentTime,t/3); setTimeout(()=>{try{h.s.stop();}catch(e){}},t*1000+300); }catch(e){} }
+// Canvas sized to the frame; P() maps a point in the painting (0..1) through object-fit:cover.
+const cv=document.getElementById('cv'), x=cv.getContext('2d'), bg=document.getElementById('bg'), DPR=Math.min(devicePixelRatio||1,2);
+let W=0,H=0; function size(){ W=cv.width=cv.clientWidth*DPR; H=cv.height=cv.clientHeight*DPR; } size(); addEventListener('resize',size);
+function cover(){ const iw=bg.naturalWidth||752, ih=bg.naturalHeight||1344, s=Math.max(W/iw,H/ih); return {s,ox:(W-iw*s)/2,oy:(H-ih*s)/2,iw,ih}; }
+function P(fx,fy){ const c=cover(); return [c.ox+fx*c.iw*c.s, c.oy+fy*c.ih*c.s]; }
+function S(f){ const c=cover(); return f*c.iw*c.s; }
+function pt(e){ const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*DPR,(e.clientY-r.top)*DPR]; }
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id), hud=$('hud'), end=$('end');
+
+const PAGESPOT=[[.1,.72],[.62,.74],[.86,.76],[.2,.84],[.47,.89],[.85,.87],[.33,.95]];
+const LINES=['a queer space western','a trans heist comedy','a lesbian lighthouse ghost story','a nonbinary teen detective','two dads and a haunted bakery','a bi superhero sitcom','an ace rom com'];
+const WORD='OUTLOUD'; const marq=$('marq'); WORD.split('').forEach(ch=>{ const s=document.createElement('span'); s.textContent=ch; marq.appendChild(s); });
+const found=PAGESPOT.map(()=>0), dwell=PAGESPOT.map(()=>0), fly=[]; let on=false, sx=-1, sy=-1, n=0, music=null, logT=null;
+cv.addEventListener('pointerdown',e=>{ audio(); cv.setPointerCapture(e.pointerId); [sx,sy]=pt(e); if(!on){ on=true; play('spot',.9); } });
+cv.addEventListener('pointermove',e=>{ if(on&&e.buttons) [sx,sy]=pt(e); });
+function say(t){ const l=$('log'); l.textContent=t; l.classList.add('on'); clearTimeout(logT); logT=setTimeout(()=>l.classList.remove('on'),1600); }
+async function finale(){ hud.textContent=''; music=await play('music',.9); setTimeout(()=>play('applause',.8),900); setTimeout(()=>end.classList.add('on'),2200); }
+$('again').onclick=()=>{ end.classList.remove('on'); fade(music); found.fill(0); dwell.fill(0); n=0; [...marq.children].forEach(s=>s.classList.remove('on')); hud.textContent='0 / 7 found'; };
+(function loop(){ x.clearRect(0,0,W,H); const R=S(.17);
+  // darkness with a spotlight hole
+  x.fillStyle=`rgba(4,1,3,${n>=7?.15:.78})`; x.fillRect(0,0,W,H);
+  if(on&&n<7){ x.save(); x.globalCompositeOperation='destination-out'; const g=x.createRadialGradient(sx,sy,R*.2,sx,sy,R); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.beginPath(); x.arc(sx,sy,R,0,7); x.fill(); x.restore();
+    const cone=x.createLinearGradient(W/2,0,sx,sy); cone.addColorStop(0,'rgba(255,220,150,.0)'); cone.addColorStop(1,'rgba(255,220,150,.12)'); x.fillStyle=cone; x.beginPath(); x.moveTo(W/2-6*DPR,0); x.lineTo(W/2+6*DPR,0); x.lineTo(sx+R*.8,sy); x.lineTo(sx-R*.8,sy); x.closePath(); x.fill(); }
+  PAGESPOT.forEach(([fx,fy],i)=>{ if(found[i]) return; const [px,py]=P(fx,fy); if(on&&Math.hypot(px-sx,py-sy)<R*.6){ dwell[i]+=1; x.strokeStyle=`rgba(255,200,97,${dwell[i]/25})`; x.lineWidth=3*DPR; x.beginPath(); x.arc(px,py,S(.05),0,7*dwell[i]/25); x.stroke();
+      if(dwell[i]>25){ found[i]=1; n++; play('pages',.9,false,.95+Math.random()*.1); say(LINES[i]); fly.push({x:px,y:py,t:0,k:n-1}); hud.textContent=n+' / 7 found'; } } else dwell[i]=Math.max(0,dwell[i]-1); });
+  fly.forEach(f=>{ f.t=Math.min(f.t+.025,1); const tgt=marq.children[f.k].getBoundingClientRect(), r=cv.getBoundingClientRect(); const tx=(tgt.left-r.left+tgt.width/2)*DPR, ty=(tgt.top-r.top+tgt.height/2)*DPR; const e=1-Math.pow(1-f.t,3);
+    const fx=f.x+(tx-f.x)*e, fy=f.y+(ty-f.y)*e-Math.sin(e*Math.PI)*60*DPR; x.save(); x.translate(fx,fy); x.rotate((1-e)*2); x.fillStyle='#fff8ea'; x.fillRect(-14*DPR*(1-e*.6),-18*DPR*(1-e*.6),28*DPR*(1-e*.6),36*DPR*(1-e*.6)); x.restore();
+    if(f.t>=1&&!f.done){ f.done=1; marq.children[f.k].classList.add('on'); if(n===7&&f.k===6) finale(); } });
+  requestAnimationFrame(loop); })();
+
+</script>
+</body>
+</html>
